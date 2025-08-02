@@ -9,6 +9,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json.Linq;
+using GenerativeAI;
+using System.Collections.Generic;
+using GenerativeAI.Types;
 
 namespace CaptureImage
 {
@@ -35,6 +38,9 @@ namespace CaptureImage
 
     public partial class DisplayImage : Form
     {
+        private readonly GenerativeModel _generativeModel;
+        private readonly string _apiKey;
+
         // Store the captured image in a field to access it later
         private Image _capturedImage;
 
@@ -42,6 +48,20 @@ namespace CaptureImage
         {
             InitializeComponent();
             _capturedImage = capturedImage;
+
+            //Get API
+            _apiKey = ConfigurationManager.AppSettings["GoogleAI.ApiKey"];
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                MessageBox.Show("Google AI API Key is not set in App.config.", "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                this.Close();
+                return;
+            }
+            // 1. Create instance of GoogleAi
+            var googleAI = new GoogleAi(_apiKey);
+            // 2. Create GenerativeModel
+            _generativeModel = googleAI.CreateGenerativeModel("models/gemini-2.5-flash");
+
 
             // Configure the WebBrowser control
             webBrowser1.ObjectForScripting = new ScriptingBridge(this);
@@ -51,7 +71,7 @@ namespace CaptureImage
             this.MouseMove += me_MouseMove;
             this.MouseUp += me_MouseUp;
             this.DoubleClick += (sender, e) => { this.Close(); };
-            
+
             // Generate and load the initial HTML UI
             LoadInitialHtml();
         }
@@ -68,7 +88,7 @@ namespace CaptureImage
                 // **START OF NEW CODE**
                 // 1. Prepare the image for the OCR API to meet the minimum size requirement.
                 // This will either return the original image or a new padded image.
-                using (Image imageForOcr = SetUpImageBeforeCallAPI(_capturedImage))
+                using (Image imageForOcr = _capturedImage)
                 {
                     // **END OF NEW CODE**
 
@@ -82,8 +102,8 @@ namespace CaptureImage
                     }
 
                     // 3. Call OCR service and get HTML formatted result
-                    string htmlResult = await GetOcrHtmlContentAsync(imageBytes);
-
+                    //string htmlResult = await GetOcrHtmlContentAsync(imageBytes);
+                    string htmlResult = await GetOcrHtmlContentByAIAsync(imageBytes);
                     // 4. Update UI with results via JavaScript
                     CallScript("updateResults", new object[] { htmlResult });
                 } // The 'using' block ensures the dummy image is properly disposed of.
@@ -246,6 +266,33 @@ namespace CaptureImage
             }
         }
 
+        private async Task<string> GetOcrHtmlContentByAIAsync(byte[] imageBytes)
+        {
+            try
+            {
+                var contentParts = new List<Part>{
+                    new Part { Text = "Extract all text from the image, and return only the raw text content. Do not provide any commentary or markdown formatting." },
+                    new Part { InlineData = new Blob { MimeType = "image/png", Data = GetImageAsBase64() }}
+                };
+                var response = await _generativeModel.GenerateContentAsync(contentParts);
+
+                string extractedText = response.Text;
+
+                if (!string.IsNullOrEmpty(extractedText))
+                {
+                    return $"<div class='region-box'>{System.Web.HttpUtility.HtmlEncode(extractedText).Replace("\n", "<br/>")}</div>";
+                }
+                else
+                {
+                    return "<p>No text was detected by the AI.</p>";
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("AI service request failed.", ex);
+            }
+        }
+
         /// <summary>
         /// Safely invokes a JavaScript function in the WebBrowser control.
         /// </summary>
@@ -290,7 +337,7 @@ namespace CaptureImage
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(484, 561);
             this.Controls.Add(this.webBrowser1);
-            this.Padding = new Padding(15,2,15,2);
+            this.Padding = new Padding(15, 15, 15, 15);
             this.Name = "DisplayImage";
             this.Text = "Image to Text Converter";
             this.FormBorderStyle = FormBorderStyle.None;
