@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using GenerativeAI;
 using System.Collections.Generic;
 using GenerativeAI.Types;
+using System.Runtime.InteropServices;
 
 namespace CaptureImage
 {
@@ -44,6 +45,17 @@ namespace CaptureImage
 
     public partial class DisplayImage : Form
     {
+        // Import the SetWindowPos function from user32.dll
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        // Define constants for the function
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private const UInt32 SWP_NOSIZE = 0x0001;
+        private const UInt32 SWP_NOMOVE = 0x0002;
+        private const UInt32 TOPMOST_FLAGS = SWP_NOMOVE | SWP_NOSIZE;
+
         private readonly GenerativeModel _generativeModel;
         private readonly string _apiKey;
 
@@ -68,7 +80,6 @@ namespace CaptureImage
             // 2. Create GenerativeModel
             _generativeModel = googleAI.CreateGenerativeModel("models/gemini-2.5-flash");
 
-
             // Configure the WebBrowser control
             webBrowser1.ObjectForScripting = new ScriptingBridge(this);
             webBrowser1.AllowWebBrowserDrop = false;
@@ -80,8 +91,15 @@ namespace CaptureImage
 
             // Generate and load the initial HTML UI
             LoadInitialHtml();
+            this.Load += new System.EventHandler(this.MyForm_Load);
         }
 
+
+        private void MyForm_Load(object sender, EventArgs e)
+        {
+            // Use SetWindowPos to place the form at the top of the Z-order
+            SetWindowPos(this.Handle, HWND_TOPMOST, 0, 0, 0, 0, TOPMOST_FLAGS);
+        }
         public async Task ProcessOcrRequest()
         {
             if (_capturedImage == null) return;
