@@ -7,10 +7,10 @@ using System.Windows.Forms;
 
 namespace KeyManager
 {
-    // Đảm bảo rằng ứng dụng không hiển thị cửa sổ chính
+    // Ensures the application does not display a main window.
     public partial class frmKeyManager : Form
     {
-        // Khai báo các hằng số và phương thức từ User32.dll
+        // Declares constants and methods from User32.dll.
         [DllImport("user32.dll")]
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vlc);
 
@@ -26,26 +26,26 @@ namespace KeyManager
         {
             InitializeComponent();
 
-            // Ẩn cửa sổ chính của form ngay khi khởi chạy
+            // Hides the main form window on startup.
             this.WindowState = FormWindowState.Minimized;
             this.ShowInTaskbar = false;
             this.Visible = false;
 
-            // Thiết lập NotifyIcon để hiển thị ở System Tray
+            // Sets up the NotifyIcon to display in the System Tray.
             SetupNotifyIcon();
 
-            // Đăng ký phím tắt Alt + X
+            // Registers the Alt + X hotkey.
             RegisterHotKey(this.Handle, HOTKEY_ID, MOD_ALT, (int)Keys.X);
         }
 
         private void SetupNotifyIcon()
         {
             notifyIcon = new NotifyIcon();
-            notifyIcon.Icon = SystemIcons.Application; // Sử dụng biểu tượng mặc định
-            notifyIcon.Text = "KeyManager - Alt + X để chụp màn hình";
+            notifyIcon.Icon = SystemIcons.Application; // Use the default application icon.
+            notifyIcon.Text = "KeyManager - Press Alt + X to capture screen";
             notifyIcon.Visible = true;
 
-            // Tạo menu chuột phải cho biểu tượng
+            // Creates the right-click context menu for the icon.
             var contextMenu = new ContextMenu();
             var exitMenuItem = new MenuItem("Exit");
             exitMenuItem.Click += (sender, e) => this.Close();
@@ -55,10 +55,10 @@ namespace KeyManager
 
         protected override void WndProc(ref Message m)
         {
-            // Kiểm tra thông điệp từ phím tắt
+            // Checks for a message from the hotkey.
             if (m.Msg == 0x0312 && m.WParam.ToInt32() == HOTKEY_ID)
             {
-                // Khi phím tắt Alt + X được nhấn
+                // When the Alt + X hotkey is pressed.
                 LaunchCaptureImage();
             }
             base.WndProc(ref m);
@@ -68,33 +68,64 @@ namespace KeyManager
         {
             try
             {
-                // Tìm đường dẫn tới file .exe của KeyManager
+                // Finds the path to the KeyManager.exe file.
                 string exePath = Application.ExecutablePath;
                 string exeDirectory = Path.GetDirectoryName(exePath);
 
-                // Tạo đường dẫn đầy đủ đến CaptureImage.exe
-                string captureImagePath = Path.Combine(exeDirectory, @"D:\SRC\ocr_generativelanguage\CaptureImage\bin\Debug\CaptureImage.exe");
+                // Creates the full path to CaptureImage.exe.
+                string captureImagePath = Path.Combine(exeDirectory, @"CaptureImage.exe");
 
-                // Kiểm tra xem file có tồn tại không
+                // Checks if the file exists.
                 if (File.Exists(captureImagePath))
                 {
-                    // Chạy ứng dụng CaptureImage.exe
+                    // --- UPDATED CODE SECTION ---
+
+                    // Get the process name from the file path (without .exe).
+                    string processName = Path.GetFileNameWithoutExtension(captureImagePath);
+
+                    // Find all running processes with the matching name.
+                    Process[] runningProcesses = Process.GetProcessesByName(processName);
+
+                    // If any matching processes are found.
+                    if (runningProcesses.Length > 0)
+                    {
+                        // Loop through and kill all of them.
+                        foreach (Process process in runningProcesses)
+                        {
+                            try
+                            {
+                                // Kills the process.
+                                process.Kill();
+                                // Wait for the process to exit completely to avoid conflicts.
+                                process.WaitForExit();
+                            }
+                            catch (Exception ex)
+                            {
+                                // Can log the error here if necessary.
+                                // Ignore the error if the process already terminated.
+                            }
+                        }
+                    }
+
+                    // --- END OF UPDATED SECTION ---
+
+                    // Start the CaptureImage.exe application after ensuring no old processes are running.
                     Process.Start(captureImagePath);
                 }
                 else
                 {
-                    notifyIcon.ShowBalloonTip(3000, "Lỗi", "Không tìm thấy CaptureImage.exe cùng thư mục.", ToolTipIcon.Error);
+                    notifyIcon.ShowBalloonTip(3000, "Error", "CaptureImage.exe not found in the same directory.", ToolTipIcon.Error);
                 }
             }
             catch (Exception ex)
             {
-                notifyIcon.ShowBalloonTip(3000, "Lỗi khởi chạy", ex.Message, ToolTipIcon.Error);
+                notifyIcon.ShowBalloonTip(3000, "Launch Error", ex.Message, ToolTipIcon.Error);
             }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            // Hủy đăng ký phím tắt khi ứng dụng đóng
+            // Unregisters the hotkey when the application closes.
             UnregisterHotKey(this.Handle, HOTKEY_ID);
             notifyIcon.Visible = false;
             notifyIcon.Dispose();
@@ -103,7 +134,7 @@ namespace KeyManager
     }
 }
 
-// Đây là phần code do Visual Studio tạo, bạn không cần thay đổi.
+// This section of the code is generated by Visual Studio and does not need to be changed.
 namespace KeyManager
 {
     partial class frmKeyManager

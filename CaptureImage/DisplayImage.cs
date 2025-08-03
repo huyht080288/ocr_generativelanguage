@@ -268,7 +268,17 @@ namespace CaptureImage
 
         private async Task<string> GetOcrHtmlContentByAIAsync(byte[] imageBytes)
         {
-            string prompt = ConfigurationManager.AppSettings["GoogleAI.Prompt"];
+
+            string exeDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+            string promptFilePath = Path.Combine(exeDirectory, "Prompt.txt");
+            if (!File.Exists(promptFilePath))
+            {
+                return "<p>File Prompt.txt not found.</p>";
+            }
+
+            string prompt = File.ReadAllText(promptFilePath);
+            //string prompt = ConfigurationManager.AppSettings["GoogleAI.Prompt"];
+
             try
             {
                 var contentParts = new List<Part>{
@@ -281,7 +291,7 @@ namespace CaptureImage
 
                 if (!string.IsNullOrEmpty(extractedText))
                 {
-                    return $"<div class='region-box'>{System.Web.HttpUtility.HtmlEncode(extractedText).Replace("\n", "<br/>")}</div>";
+                    return extractedText;
                 }
                 else
                 {
