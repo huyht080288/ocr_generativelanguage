@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace CaptureImage
+namespace KeyManager
 {
     static class Program
     {
@@ -13,7 +16,7 @@ namespace CaptureImage
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new CaptureForm());
+            Application.Run(new frmKeyManager());
         }
     }
 }

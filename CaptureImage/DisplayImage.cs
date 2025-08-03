@@ -268,10 +268,11 @@ namespace CaptureImage
 
         private async Task<string> GetOcrHtmlContentByAIAsync(byte[] imageBytes)
         {
+            string prompt = ConfigurationManager.AppSettings["GoogleAI.Prompt"];
             try
             {
                 var contentParts = new List<Part>{
-                    new Part { Text = "Extract all text from the image, and return only the raw text content. Do not provide any commentary or markdown formatting." },
+                    new Part { Text = prompt },
                     new Part { InlineData = new Blob { MimeType = "image/png", Data = GetImageAsBase64() }}
                 };
                 var response = await _generativeModel.GenerateContentAsync(contentParts);
