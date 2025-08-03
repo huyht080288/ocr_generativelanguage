@@ -34,6 +34,12 @@ namespace CaptureImage
             // Call the main method on the form's thread
             _form.BeginInvoke(new Action(async () => await _form.ProcessOcrRequest()));
         }
+        public void CopyToClipboard(string text)
+        {
+            _form.BeginInvoke(new Action(() => {
+                Clipboard.SetText(text);
+            }));
+        }
     }
 
     public partial class DisplayImage : Form
@@ -212,8 +218,17 @@ namespace CaptureImage
             html.Append("function convertClick() { window.external.PerformOcr(); }");
             html.Append("function setButtonState(disabled, text) { var btn = document.getElementById('btnConvert'); btn.disabled = disabled; btn.innerText = text; }");
             html.Append("function updateResults(htmlContent) { document.getElementById('results').innerHTML = htmlContent; }");
+            html.Append("function copySectionText(buttonElement) {");
+            html.Append("    try {");
+            html.Append("        var sectionDiv = buttonElement.parentElement;");
+            html.Append("        var contentP = sectionDiv.querySelector('.section-content');");
+            html.Append("        var textToPass = contentP.innerText;");
+            html.Append("        window.external.CopyToClipboard(textToPass);");
+            html.Append("        buttonElement.innerText = 'Copied!';");
+            html.Append("        setTimeout(function() { buttonElement.innerText = 'Copy'; }, 3000);");
+            html.Append("    } catch (err) { }");
+            html.Append("}");
             html.Append("</script>");
-
             html.Append("</body></html>");
 
             webBrowser1.DocumentText = html.ToString();

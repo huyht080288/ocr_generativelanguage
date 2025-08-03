@@ -3,19 +3,16 @@
 2. Translate the text into English and Vietnamese.
 3. Special Rule: If the original text is already in English, the "English" output should be a proofread and corrected version. If the original text is already in Vietnamese, the "Vietnamese" output should be a proofread and corrected version.
 
-Your final output MUST be a single block of HTML code, structured and styled exactly as defined below. Do not wrap the output in markdown fences (like ```html).
+Your final output MUST be a single block of HTML code. Do not wrap the output in markdown fences (like ```html).
+The HTML must be structured and styled exactly as defined below.
+Crucially, you MUST add a "Copy" button to each section. The 'onclick' event on these buttons must call a JavaScript function that finds the correct text and uses 'window.external.CopyToClipboard(text)' to pass it to the C# application.
 
-- The entire response must be contained within a single parent `<div>`.
-- Each language section (Original, English, Vietnamese) must be a `div` with the class `section`.
-- Each section must have an `<h2>` for the title and a `<p>` for the content.
-- Preserve all line breaks from the extracted text by converting them to `<br>` tags inside the `<p>` elements.
-- Ensure any special characters within the text content (like < or >) are properly HTML-encoded to avoid breaking the layout.
-
-Here is the exact HTML structure to use:
+Here is the exact HTML structure and script to use:
 
 <style>
     .ai-result-panel { font-family: 'Segoe UI', sans-serif; line-height: 1.6; }
     .ai-result-panel .section { 
+        position: relative; /* Required for button positioning */
         background-color: #f7f8fa; 
         border-left: 4px solid #4267B2; 
         margin-bottom: 15px; 
@@ -30,20 +27,38 @@ Here is the exact HTML structure to use:
     .ai-result-panel .section-content { 
         margin: 0; 
         color: #4b4f56; 
-        white-space: pre-wrap; /* Helps preserve whitespace and line breaks */
+        white-space: pre-wrap;
     }
+    .copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .copy-btn:hover { background-color: #5a6268; }
 </style>
+
 <div class="ai-result-panel">
     <div class="section">
+        <button title="Copy to clipboard" class="copy-btn" onclick="copySectionText(this)">Copy</button>
         <h2 class="section-title">Original</h2>
-        <p class="section-content">{The raw, extracted text with line breaks as <br> and HTML-encoded content}</p>
+        <p class="section-content">{The raw, extracted text. Preserve line breaks with <br> and encode special HTML characters.}</p>
     </div>
     <div class="section">
+        <button title="Copy to clipboard" class="copy-btn" onclick="copySectionText(this)">Copy</button>
         <h2 class="section-title">English</h2>
-        <p class="section-content">{The English version with line breaks as <br> and HTML-encoded content}</p>
+        <p class="section-content">{The English version. Preserve line breaks with <br> and encode special HTML characters.}</p>
     </div>
     <div class="section">
+        <button title="Copy to clipboard" class="copy-btn" onclick="copySectionText(this)">Copy</button>
         <h2 class="section-title">Vietnamese</h2>
-        <p class="section-content">{The Vietnamese version with line breaks as <br> and HTML-encoded content}</p>
+        <p class="section-content">{The Vietnamese version. Preserve line breaks with <br> and encode special HTML characters.}</p>
     </div>
 </div>
