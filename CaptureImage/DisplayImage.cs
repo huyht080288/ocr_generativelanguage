@@ -9,6 +9,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json.Linq;
+using GenerativeAI;
+using System.Collections.Generic;
+using GenerativeAI.Types;
+using System.Runtime.InteropServices;
 
 namespace CaptureImage
 {
@@ -31,10 +35,30 @@ namespace CaptureImage
             // Call the main method on the form's thread
             _form.BeginInvoke(new Action(async () => await _form.ProcessOcrRequest()));
         }
+        public void CopyToClipboard(string text)
+        {
+            _form.BeginInvoke(new Action(() => {
+                Clipboard.SetText(text);
+            }));
+        }
     }
 
     public partial class DisplayImage : Form
     {
+        // Import the SetWindowPos function from user32.dll
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        // Define constants for the function
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private const UInt32 SWP_NOSIZE = 0x0001;
+        private const UInt32 SWP_NOMOVE = 0x0002;
+        private const UInt32 TOPMOST_FLAGS = SWP_NOMOVE | SWP_NOSIZE;
+
+        private readonly GenerativeModel _generativeModel;
+        private readonly string _apiKey;
+
         // Store the captured image in a field to access it later
         private Image _capturedImage;
 
@@ -42,6 +66,19 @@ namespace CaptureImage
         {
             InitializeComponent();
             _capturedImage = capturedImage;
+
+            //Get API
+            _apiKey = ConfigurationManager.AppSettings["GoogleAI.ApiKey"];
+            if (string.IsNullOrEmpty(_apiKey))
+            {
+                MessageBox.Show("Google AI API Key is not set in App.config.", "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                this.Close();
+                return;
+            }
+            // 1. Create instance of GoogleAi
+            var googleAI = new GoogleAi(_apiKey);
+            // 2. Create GenerativeModel
+            _generativeModel = googleAI.CreateGenerativeModel("models/gemini-2.5-flash");
 
             // Configure the WebBrowser control
             webBrowser1.ObjectForScripting = new ScriptingBridge(this);
@@ -51,11 +88,18 @@ namespace CaptureImage
             this.MouseMove += me_MouseMove;
             this.MouseUp += me_MouseUp;
             this.DoubleClick += (sender, e) => { this.Close(); };
-            
+
             // Generate and load the initial HTML UI
             LoadInitialHtml();
+            this.Load += new System.EventHandler(this.MyForm_Load);
         }
 
+
+        private void MyForm_Load(object sender, EventArgs e)
+        {
+            // Use SetWindowPos to place the form at the top of the Z-order
+            SetWindowPos(this.Handle, HWND_TOPMOST, 0, 0, 0, 0, TOPMOST_FLAGS);
+        }
         public async Task ProcessOcrRequest()
         {
             if (_capturedImage == null) return;
@@ -68,7 +112,7 @@ namespace CaptureImage
                 // **START OF NEW CODE**
                 // 1. Prepare the image for the OCR API to meet the minimum size requirement.
                 // This will either return the original image or a new padded image.
-                using (Image imageForOcr = SetUpImageBeforeCallAPI(_capturedImage))
+                using (Image imageForOcr = _capturedImage)
                 {
                     // **END OF NEW CODE**
 
@@ -82,8 +126,8 @@ namespace CaptureImage
                     }
 
                     // 3. Call OCR service and get HTML formatted result
-                    string htmlResult = await GetOcrHtmlContentAsync(imageBytes);
-
+                    //string htmlResult = await GetOcrHtmlContentAsync(imageBytes);
+                    string htmlResult = await GetOcrHtmlContentByAIAsync(imageBytes);
                     // 4. Update UI with results via JavaScript
                     CallScript("updateResults", new object[] { htmlResult });
                 } // The 'using' block ensures the dummy image is properly disposed of.
@@ -192,8 +236,17 @@ namespace CaptureImage
             html.Append("function convertClick() { window.external.PerformOcr(); }");
             html.Append("function setButtonState(disabled, text) { var btn = document.getElementById('btnConvert'); btn.disabled = disabled; btn.innerText = text; }");
             html.Append("function updateResults(htmlContent) { document.getElementById('results').innerHTML = htmlContent; }");
+            html.Append("function copySectionText(buttonElement) {");
+            html.Append("    try {");
+            html.Append("        var sectionDiv = buttonElement.parentElement;");
+            html.Append("        var contentP = sectionDiv.querySelector('.section-content');");
+            html.Append("        var textToPass = contentP.innerText;");
+            html.Append("        window.external.CopyToClipboard(textToPass);");
+            html.Append("        buttonElement.innerText = 'Copied!';");
+            html.Append("        setTimeout(function() { buttonElement.innerText = 'Copy'; }, 3000);");
+            html.Append("    } catch (err) { }");
+            html.Append("}");
             html.Append("</script>");
-
             html.Append("</body></html>");
 
             webBrowser1.DocumentText = html.ToString();
@@ -246,6 +299,44 @@ namespace CaptureImage
             }
         }
 
+        private async Task<string> GetOcrHtmlContentByAIAsync(byte[] imageBytes)
+        {
+
+            string exeDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+            string promptFilePath = Path.Combine(exeDirectory, "Prompt.txt");
+            if (!File.Exists(promptFilePath))
+            {
+                return "<p>File Prompt.txt not found.</p>";
+            }
+
+            string prompt = File.ReadAllText(promptFilePath);
+            //string prompt = ConfigurationManager.AppSettings["GoogleAI.Prompt"];
+
+            try
+            {
+                var contentParts = new List<Part>{
+                    new Part { Text = prompt },
+                    new Part { InlineData = new Blob { MimeType = "image/png", Data = GetImageAsBase64() }}
+                };
+                var response = await _generativeModel.GenerateContentAsync(contentParts);
+
+                string extractedText = response.Text;
+
+                if (!string.IsNullOrEmpty(extractedText))
+                {
+                    return extractedText;
+                }
+                else
+                {
+                    return "<p>No text was detected by the AI.</p>";
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("AI service request failed.", ex);
+            }
+        }
+
         /// <summary>
         /// Safely invokes a JavaScript function in the WebBrowser control.
         /// </summary>
@@ -290,7 +381,7 @@ namespace CaptureImage
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(484, 561);
             this.Controls.Add(this.webBrowser1);
-            this.Padding = new Padding(15,2,15,2);
+            this.Padding = new Padding(15, 15, 15, 15);
             this.Name = "DisplayImage";
             this.Text = "Image to Text Converter";
             this.FormBorderStyle = FormBorderStyle.None;

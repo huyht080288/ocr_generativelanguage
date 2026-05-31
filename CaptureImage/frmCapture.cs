@@ -16,6 +16,9 @@ namespace CaptureImage
         {
             this.FormBorderStyle = FormBorderStyle.None;
             this.Bounds = SystemInformation.VirtualScreen;
+            this.Location = SystemInformation.VirtualScreen.Location;
+            this.Size = SystemInformation.VirtualScreen.Size;
+            this.StartPosition = FormStartPosition.Manual;
             this.BackColor = Color.Black; // Changed to Black for a better dimming effect
             this.Opacity = 0.3;
             this.Cursor = Cursors.Cross;
