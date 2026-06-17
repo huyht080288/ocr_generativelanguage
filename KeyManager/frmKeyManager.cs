@@ -79,15 +79,7 @@ namespace KeyManager
             var helpMenuItem = new MenuItem("Help");
             settingsMenuItem.Click += (sender, e) => OpenSettings();
             exitMenuItem.Click += (sender, e) => this.Close();
-            helpMenuItem.Click += (sender, e) => 
-            {
-                string exeDirectory = Path.GetDirectoryName(Application.ExecutablePath);
-                string userManual = Path.Combine(exeDirectory, @"UserManual.html");
-                if (File.Exists(userManual))
-                {
-                    Process.Start(userManual);
-                }
-            };
+            helpMenuItem.Click += (sender, e) => OpenHelp();
             contextMenu.MenuItems.Add(helpMenuItem);
             contextMenu.MenuItems.Add(settingsMenuItem);
             contextMenu.MenuItems.Add(exitMenuItem);
@@ -108,6 +100,22 @@ namespace KeyManager
         private void UpdateTrayTooltip()
         {
             notifyIcon.Text = "Press " + AiOcrSettings.FormatHotkey(_settings) + " to capture screen";
+        }
+
+        private void OpenHelp()
+        {
+            string exeDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+            string helperPath = Path.Combine(exeDirectory, "helper.html");
+            if (File.Exists(helperPath))
+            {
+                Process.Start(helperPath);
+            }
+            else
+            {
+                notifyIcon.ShowBalloonTip(5000, "Help",
+                    "helper.html not found in the application folder.",
+                    ToolTipIcon.Warning);
+            }
         }
 
         private void OpenSettings()

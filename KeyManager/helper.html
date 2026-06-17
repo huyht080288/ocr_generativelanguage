@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>AIOCRTRANS — Hướng dẫn cài đặt &amp; sử dụng</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            font-size: 15px;
+            line-height: 1.65;
+            color: #1d2129;
+            background: #eef1f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #4267B2 0%, #365899 100%);
+            color: #fff;
+            padding: 28px 32px 24px;
+        }
+        .header h1 { margin: 0 0 8px; font-size: 1.75em; font-weight: 600; }
+        .header p { margin: 0; opacity: 0.92; max-width: 720px; }
+        .container { max-width: 860px; margin: 0 auto; padding: 24px 20px 48px; }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 22px 26px;
+            margin-bottom: 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        h2 {
+            margin: 0 0 14px;
+            font-size: 1.25em;
+            color: #4267B2;
+            border-bottom: 2px solid #e4e6eb;
+            padding-bottom: 8px;
+        }
+        h3 { margin: 18px 0 8px; font-size: 1.05em; color: #333; }
+        ul, ol { margin: 8px 0 12px; padding-left: 22px; }
+        li { margin-bottom: 6px; }
+        code, .path {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.92em;
+            background: #f0f2f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .path { display: inline-block; word-break: break-all; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.95em;
+        }
+        th, td {
+            border: 1px solid #dddfe2;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th { background: #f7f8fa; font-weight: 600; }
+        .step-num {
+            display: inline-block;
+            width: 26px;
+            height: 26px;
+            line-height: 26px;
+            text-align: center;
+            background: #4267B2;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .note {
+            background: #fff8e6;
+            border-left: 4px solid #f5a623;
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .warn {
+            background: #fdecea;
+            border-left: 4px solid #e74c3c;
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .ok {
+            background: #e8f5e9;
+            border-left: 4px solid #43a047;
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        a { color: #4267B2; }
+        .toc a { text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .footer {
+            text-align: center;
+            color: #65676b;
+            font-size: 0.9em;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>AIOCRTRANS — Hướng dẫn cài đặt &amp; sử dụng</h1>
+    <p>Ứng dụng chụp màn hình, nhận dạng văn bản (OCR) và dịch sang tiếng Anh / tiếng Việt bằng Google Gemini AI.</p>
+</div>
+
+<div class="container">
+
+    <div class="card toc">
+        <h2>Mục lục</h2>
+        <ol>
+            <li><a href="#overview">Tổng quan ứng dụng</a></li>
+            <li><a href="#requirements">Yêu cầu hệ thống</a></li>
+            <li><a href="#files">Các file cần có trong thư mục cài đặt</a></li>
+            <li><a href="#first-run">Chạy lần đầu — từng bước</a></li>
+            <li><a href="#api-key">Lấy Google API Key</a></li>
+            <li><a href="#settings">Cấu hình trong Settings</a></li>
+            <li><a href="#usage">Cách sử dụng hàng ngày</a></li>
+            <li><a href="#registry">Vị trí lưu cấu hình (Registry)</a></li>
+            <li><a href="#troubleshooting">Xử lý sự cố</a></li>
+        </ol>
+    </div>
+
+    <div class="card" id="overview">
+        <h2>1. Tổng quan ứng dụng</h2>
+        <p>Solution gồm <strong>hai chương trình</strong> chạy cùng một thư mục:</p>
+        <table>
+            <tr>
+                <th>File</th>
+                <th>Vai trò</th>
+            </tr>
+            <tr>
+                <td><code>KeyManager.exe</code></td>
+                <td>Chạy nền (icon ở khay hệ thống — system tray). Lắng nghe phím tắt, mở Settings, khởi động CaptureImage.</td>
+            </tr>
+            <tr>
+                <td><code>CaptureImage.exe</code></td>
+                <td>Hiện khi bạn bấm phím tắt: chọn vùng màn hình → chụp → OCR &amp; dịch bằng AI.</td>
+            </tr>
+        </table>
+        <div class="note">
+            <strong>Lưu ý:</strong> Bạn chỉ cần <strong>tự chạy KeyManager.exe</strong>. CaptureImage được KeyManager tự động mở khi cần.
+        </div>
+    </div>
+
+    <div class="card" id="requirements">
+        <h2>2. Yêu cầu hệ thống</h2>
+        <ul>
+            <li><strong>Hệ điều hành:</strong> Windows 10 hoặc Windows 11 (64-bit khuyến nghị)</li>
+            <li><strong>.NET Framework:</strong> 4.6.2 trở lên (thường đã có sẵn trên Windows 10/11)</li>
+            <li><strong>Internet:</strong> Bắt buộc khi bấm <em>Convert to Text</em> (gọi Google Gemini API)</li>
+            <li><strong>Google AI API Key:</strong> Bắt buộc — xem mục 5 bên dưới</li>
+            <li><strong>Quyền:</strong> Không cần quyền Administrator; cần quyền ghi Registry cho user hiện tại</li>
+        </ul>
+    </div>
+
+    <div class="card" id="files">
+        <h2>3. Các file cần có trong thư mục cài đặt</h2>
+        <p>Sau khi build hoặc copy bộ cài, thư mục (ví dụ <span class="path">Shared\</span>) cần có:</p>
+        <table>
+            <tr>
+                <th>File</th>
+                <th>Bắt buộc</th>
+                <th>Mô tả</th>
+            </tr>
+            <tr>
+                <td><code>KeyManager.exe</code></td>
+                <td>Có</td>
+                <td>App chính — chạy nền</td>
+            </tr>
+            <tr>
+                <td><code>CaptureImage.exe</code></td>
+                <td>Có</td>
+                <td>App chụp màn hình &amp; OCR</td>
+            </tr>
+            <tr>
+                <td><code>CaptureImage.exe.config</code></td>
+                <td>Có</td>
+                <td>File cấu hình runtime của CaptureImage</td>
+            </tr>
+            <tr>
+                <td><code>Prompt.txt</code></td>
+                <td>Có</td>
+                <td>Prompt gửi cho AI (OCR + dịch + định dạng HTML)</td>
+            </tr>
+            <tr>
+                <td><code>helper.html</code></td>
+                <td>Khuyến nghị</td>
+                <td>File hướng dẫn này (mở từ menu Help)</td>
+            </tr>
+            <tr>
+                <td>Các file <code>*.dll</code></td>
+                <td>Có</td>
+                <td>Thư viện phụ thuộc (NuGet) — copy cùng khi build</td>
+            </tr>
+        </table>
+        <div class="warn">
+            <strong>KeyManager.exe</strong> và <strong>CaptureImage.exe</strong> phải nằm <strong>cùng một thư mục</strong>. Nếu thiếu CaptureImage.exe, phím tắt sẽ báo lỗi.
+        </div>
+    </div>
+
+    <div class="card" id="first-run">
+        <h2>4. Chạy lần đầu — từng bước</h2>
+
+        <p><span class="step-num">1</span> Mở thư mục chứa <code>KeyManager.exe</code> và double-click để chạy.</p>
+        <p><span class="step-num">2</span> Kiểm tra <strong>system tray</strong> (góc dưới phải màn hình). Nếu không thấy icon, bấm mũi tên <strong>^</strong> (Show hidden icons) để tìm icon KeyManager.</p>
+        <p><span class="step-num">3</span> Click <strong>phải</strong> vào icon tray → chọn <strong>Settings</strong>.</p>
+        <p><span class="step-num">4</span> Nhập <strong>Google API key</strong>, chọn <strong>AI model</strong> (mặc định <code>models/gemini-2.5-flash</code> là ổn), kiểm tra <strong>Shortcut key</strong> (mặc định <code>Alt+X</code>).</p>
+        <p><span class="step-num">5</span> Bấm <strong>Save</strong>.</p>
+        <p><span class="step-num">6</span> Thử phím tắt (mặc định <code>Alt+X</code>): màn hình mờ → kéo chuột chọn vùng → thả chuột để chụp.</p>
+        <p><span class="step-num">7</span> Trong cửa sổ kết quả, bấm <strong>Convert to Text</strong> và đợi AI xử lý.</p>
+
+        <div class="ok">
+            Nếu thấy kết quả HTML với các section văn bản và nút Copy — cấu hình đã thành công.
+        </div>
+    </div>
+
+    <div class="card" id="api-key">
+        <h2>5. Lấy Google API Key</h2>
+        <ol>
+            <li>Truy cập <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio — API Keys</a> (cần đăng nhập Google).</li>
+            <li>Bấm <strong>Create API key</strong> (hoặc dùng key có sẵn).</li>
+            <li>Copy chuỗi API key.</li>
+            <li>Dán vào ô <strong>Google API key</strong> trong Settings → Save.</li>
+        </ol>
+        <div class="note">
+            API key là thông tin nhạy cảm — không chia sẻ công khai. Ứng dụng lưu key trong Registry của user Windows (xem mục 8).
+        </div>
+        <div class="warn">
+            Nếu chưa nhập API key, CaptureImage vẫn mở được nhưng <strong>Convert to Text</strong> sẽ báo lỗi yêu cầu cấu hình Settings.
+        </div>
+    </div>
+
+    <div class="card" id="settings">
+        <h2>6. Cấu hình trong Settings</h2>
+        <p>Mở Settings: <strong>Click phải icon tray → Settings</strong></p>
+
+        <h3>6.1. Shortcut key (phím tắt)</h3>
+        <ul>
+            <li>Hiển thị phím tắt hiện tại (mặc định: <code>Alt+X</code>).</li>
+            <li>Bấm <strong>Change...</strong> → nhấn tổ hợp phím mong muốn (phải có ít nhất một phím modifier: <code>Ctrl</code>, <code>Alt</code>, <code>Shift</code> hoặc <code>Win</code>).</li>
+            <li>Bấm <strong>Esc</strong> để huỷ khi đang ghi phím.</li>
+            <li>Sau khi Save, phím tắt có hiệu lực ngay — không cần khởi động lại KeyManager.</li>
+        </ul>
+        <div class="note">
+            Nếu phím tắt trùng với ứng dụng khác, KeyManager hiện cảnh báo balloon &quot;Hotkey Error&quot;. Hãy chọn tổ hợp phím khác.
+        </div>
+
+        <h3>6.2. AI model</h3>
+        <ul>
+            <li>Chọn từ danh sách hoặc gõ tên model (ví dụ: <code>models/gemini-2.5-flash</code>).</li>
+            <li>Nếu chỉ gõ tên ngắn (ví dụ <code>gemini-2.0-flash</code>), ứng dụng tự thêm prefix <code>models/</code>.</li>
+            <li>Model phải hỗ trợ đầu vào ảnh (multimodal) trên Google AI.</li>
+        </ul>
+        <p>Các model gợi ý:</p>
+        <ul>
+            <li><code>models/gemini-2.5-flash</code> — mặc định, nhanh</li>
+            <li><code>models/gemini-2.0-flash</code></li>
+            <li><code>models/gemini-1.5-flash</code></li>
+            <li><code>models/gemini-1.5-pro</code> — chất lượng cao hơn, chậm hơn</li>
+        </ul>
+
+        <h3>6.3. Google API key</h3>
+        <ul>
+            <li>Nhập key lấy từ Google AI Studio.</li>
+            <li>Dùng nút <strong>Show / Hide</strong> để xem hoặc ẩn key khi nhập.</li>
+            <li>Bắt buộc phải có trước khi OCR hoạt động.</li>
+        </ul>
+
+        <h3>6.4. Lưu cấu hình</h3>
+        <p>Bấm <strong>Save</strong> để ghi vào Registry. Bấm <strong>Cancel</strong> để huỷ thay đổi.</p>
+    </div>
+
+    <div class="card" id="usage">
+        <h2>7. Cách sử dụng hàng ngày</h2>
+
+        <h3>Phím tắt &amp; chụp màn hình</h3>
+        <table>
+            <tr>
+                <th>Thao tác</th>
+                <th>Cách làm</th>
+            </tr>
+            <tr>
+                <td>Bắt đầu chụp</td>
+                <td>Bấm phím tắt (mặc định <code>Alt+X</code>)</td>
+            </tr>
+            <tr>
+                <td>Chọn vùng</td>
+                <td>Giữ chuột trái và kéo trên màn hình mờ</td>
+            </tr>
+            <tr>
+                <td>Huỷ chụp</td>
+                <td>Nhấn <code>Esc</code> hoặc thả chuột khi vùng chọn quá nhỏ</td>
+            </tr>
+            <tr>
+                <td>OCR &amp; dịch</td>
+                <td>Bấm <strong>Convert to Text</strong> trong cửa sổ kết quả</td>
+            </tr>
+            <tr>
+                <td>Copy một đoạn</td>
+                <td>Bấm nút <strong>Copy</strong> trên từng section trong kết quả</td>
+            </tr>
+            <tr>
+                <td>Đóng cửa sổ kết quả</td>
+                <td>Double-click vào form hoặc đóng cửa sổ</td>
+            </tr>
+            <tr>
+                <td>Di chuyển cửa sổ kết quả</td>
+                <td>Kéo form bằng chuột</td>
+            </tr>
+        </table>
+
+        <h3>Menu system tray (click phải icon)</h3>
+        <table>
+            <tr>
+                <th>Menu</th>
+                <th>Chức năng</th>
+            </tr>
+            <tr>
+                <td><strong>Help</strong></td>
+                <td>Mở file hướng dẫn này (<code>helper.html</code>)</td>
+            </tr>
+            <tr>
+                <td><strong>Settings</strong></td>
+                <td>Cấu hình phím tắt, API key, AI model</td>
+            </tr>
+            <tr>
+                <td><strong>Exit</strong></td>
+                <td>Thoát KeyManager (phím tắt sẽ không hoạt động)</td>
+            </tr>
+        </table>
+
+        <h3>Khởi động cùng Windows</h3>
+        <p>KeyManager tự đăng ký chạy khi đăng nhập Windows (Startup). Sau khi reboot, icon tray sẽ xuất hiện lại — nhớ cấu hình Settings một lần là đủ.</p>
+    </div>
+
+    <div class="card" id="registry">
+        <h2>8. Vị trí lưu cấu hình (Registry)</h2>
+        <p>Cấu hình người dùng được lưu tại:</p>
+        <p class="path">HKEY_CURRENT_USER\Software\AIOCRTRANS</p>
+        <p>Mở Registry Editor (<code>regedit</code>) và điều hướng tới path trên (không cần quyền admin).</p>
+        <table>
+            <tr>
+                <th>Tên value</th>
+                <th>Ý nghĩa</th>
+            </tr>
+            <tr>
+                <td><code>HotkeyModifiers</code></td>
+                <td>Phím modifier (Alt=1, Ctrl=2, Shift=4, Win=8)</td>
+            </tr>
+            <tr>
+                <td><code>HotkeyKey</code></td>
+                <td>Mã phím (mặc định 88 = phím X)</td>
+            </tr>
+            <tr>
+                <td><code>GoogleApiKey</code></td>
+                <td>Google Gemini API key</td>
+            </tr>
+            <tr>
+                <td><code>AiModel</code></td>
+                <td>Tên model AI (ví dụ <code>models/gemini-2.5-flash</code>)</td>
+            </tr>
+        </table>
+        <div class="note">
+            Khuyến nghị chỉnh cấu hình qua <strong>Settings</strong> thay vì sửa Registry thủ công.
+        </div>
+    </div>
+
+    <div class="card" id="troubleshooting">
+        <h2>9. Xử lý sự cố</h2>
+
+        <h3>Phím tắt không hoạt động</h3>
+        <ul>
+            <li>Kiểm tra KeyManager đang chạy (icon trong tray).</li>
+            <li>Mở Settings → thử đổi phím tắt khác → Save.</li>
+            <li>Phím có thể bị ứng dụng khác chiếm (game overlay, Teams, v.v.).</li>
+        </ul>
+
+        <h3>Không thấy icon tray</h3>
+        <ul>
+            <li>Bấm mũi tên <strong>^</strong> trên taskbar để xem icon ẩn.</li>
+            <li>Kéo icon KeyManager ra vùng hiển thị thường xuyên (tuỳ cài đặt Windows).</li>
+        </ul>
+
+        <h3>Báo lỗi &quot;CaptureImage.exe not found&quot;</h3>
+        <ul>
+            <li>Đảm bảo <code>CaptureImage.exe</code> cùng thư mục với <code>KeyManager.exe</code>.</li>
+            <li>Build lại solution hoặc copy đủ file từ thư mục <code>Shared\</code>.</li>
+        </ul>
+
+        <h3>Convert to Text báo chưa có API key</h3>
+        <ul>
+            <li>Tray → Settings → nhập Google API key → Save.</li>
+            <li>Đóng CaptureImage (nếu đang mở) và bấm phím tắt lại để mở instance mới.</li>
+        </ul>
+
+        <h3>AI trả về lỗi hoặc không có text</h3>
+        <ul>
+            <li>Kiểm tra kết nối Internet.</li>
+            <li>Kiểm tra API key còn hiệu lực và có quota trên Google AI Studio.</li>
+            <li>Thử đổi model trong Settings (ví dụ sang <code>gemini-2.0-flash</code>).</li>
+            <li>Ảnh chụp quá mờ hoặc không có chữ — thử chụp vùng rõ hơn.</li>
+        </ul>
+
+        <h3>Convert to Text lỗi lần thứ 2 trở đi</h3>
+        <ul>
+            <li>Cập nhật lên bản CaptureImage mới nhất (đã sửa lỗi dispose ảnh).</li>
+        </ul>
+
+        <h3>Help không mở được</h3>
+        <ul>
+            <li>Đảm bảo file <code>helper.html</code> nằm cùng thư mục với <code>KeyManager.exe</code>.</li>
+            <li>Mở thủ công bằng trình duyệt: double-click <code>helper.html</code>.</li>
+        </ul>
+    </div>
+
+    <p class="footer">AIOCRTRANS — helper.html · Mở từ menu Help trên system tray</p>
+</div>
+
+</body>
+</html>
