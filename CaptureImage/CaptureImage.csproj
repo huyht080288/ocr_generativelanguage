@@ -45,6 +45,7 @@
     <Compile Include="CaptureOutput.Designer.cs">
       <DependentUpon>CaptureOutput.cs</DependentUpon>
     </Compile>
+    <Compile Include="AiOcrSettings.cs" />
     <Compile Include="DisplayImage.cs" />
     <Compile Include="frmCapture.cs">
       <SubType>Form</SubType>

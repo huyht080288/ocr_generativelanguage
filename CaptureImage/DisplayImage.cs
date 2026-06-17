@@ -56,8 +56,8 @@ namespace CaptureImage
         private const UInt32 SWP_NOMOVE = 0x0002;
         private const UInt32 TOPMOST_FLAGS = SWP_NOMOVE | SWP_NOSIZE;
 
-        private readonly GenerativeModel _generativeModel;
-        private readonly string _apiKey;
+        private GenerativeModel _generativeModel;
+        private string _apiKey;
 
         // Store the captured image in a field to access it later
         private Image _capturedImage;
@@ -67,18 +67,21 @@ namespace CaptureImage
             InitializeComponent();
             _capturedImage = capturedImage;
 
-            //Get API
-            _apiKey = ConfigurationManager.AppSettings["GoogleAI.ApiKey"];
+            var settings = AiOcrSettings.Load();
+            _apiKey = settings.GoogleApiKey;
             if (string.IsNullOrEmpty(_apiKey))
             {
-                MessageBox.Show("Google AI API Key is not set in App.config.", "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                this.Close();
-                return;
+                MessageBox.Show(
+                    "Google AI API Key is not set. Right-click the KeyManager tray icon and open Settings.",
+                    "Configuration Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
             }
-            // 1. Create instance of GoogleAi
-            var googleAI = new GoogleAi(_apiKey);
-            // 2. Create GenerativeModel
-            _generativeModel = googleAI.CreateGenerativeModel("models/gemini-2.5-flash");
+            else
+            {
+                var googleAI = new GoogleAi(_apiKey);
+                _generativeModel = googleAI.CreateGenerativeModel(AiOcrSettings.NormalizeModelName(settings.AiModel));
+            }
 
             // Configure the WebBrowser control
             webBrowser1.ObjectForScripting = new ScriptingBridge(this);
@@ -104,37 +107,32 @@ namespace CaptureImage
         {
             if (_capturedImage == null) return;
 
+            if (_generativeModel == null)
+            {
+                CallScript("updateResults", new object[] {
+                    "<p style='color: red;'><b>Google AI API Key is not configured.</b><br/>Right-click the KeyManager tray icon and open Settings.</p>"
+                });
+                return;
+            }
+
             CallScript("setButtonState", new object[] { true, "Converting..." });
             CallScript("updateResults", new object[] { "<i>Processing, please wait...</i>" });
 
             try
             {
-                // **START OF NEW CODE**
-                // 1. Prepare the image for the OCR API to meet the minimum size requirement.
-                // This will either return the original image or a new padded image.
-                using (Image imageForOcr = _capturedImage)
+                byte[] imageBytes;
+                using (var ms = new MemoryStream())
                 {
-                    // **END OF NEW CODE**
+                    _capturedImage.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    imageBytes = ms.ToArray();
+                }
 
-                    // 2. Convert the (potentially new) image to bytes
-                    byte[] imageBytes;
-                    using (var ms = new MemoryStream())
-                    {
-                        // Use the imageForOcr object for saving.
-                        imageForOcr.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                        imageBytes = ms.ToArray();
-                    }
-
-                    // 3. Call OCR service and get HTML formatted result
-                    //string htmlResult = await GetOcrHtmlContentAsync(imageBytes);
-                    string htmlResult = await GetOcrHtmlContentByAIAsync(imageBytes);
-                    // 4. Update UI with results via JavaScript
-                    CallScript("updateResults", new object[] { htmlResult });
-                } // The 'using' block ensures the dummy image is properly disposed of.
+                string htmlResult = await GetOcrHtmlContentByAIAsync(imageBytes);
+                CallScript("updateResults", new object[] { htmlResult });
             }
             catch (Exception ex)
             {
-                string errorHtml = $"<p style='color: red;'><b>Failed to process image.</b><br/>Error: {ex.Message}</p>";
+                string errorHtml = $"<p style='color: red;'><b>Failed to process image.</b><br/>Error: {ex.Message} && {ex.StackTrace}</p>";
                 CallScript("updateResults", new object[] { errorHtml });
             }
             finally
@@ -354,9 +352,14 @@ namespace CaptureImage
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                _capturedImage?.Dispose();
+                _capturedImage = null;
+                if (components != null)
+                {
+                    components.Dispose();
+                }
             }
             base.Dispose(disposing);
         }

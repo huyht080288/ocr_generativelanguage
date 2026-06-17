@@ -39,6 +39,10 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AiOcrSettings.cs" />
+    <Compile Include="frmSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="frmKeyManager.cs">
       <SubType>Form</SubType>
     </Compile>

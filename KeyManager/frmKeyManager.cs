@@ -19,25 +19,40 @@ namespace KeyManager
         public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         const int HOTKEY_ID = 1;
-        const int MOD_ALT = 0x0001; // Alt key
+        const int WS_EX_TOOLWINDOW = 0x00000080;
+        const int WS_EX_APPWINDOW = 0x00040000;
 
         private NotifyIcon notifyIcon;
+        private AiOcrSettings _settings;
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= WS_EX_TOOLWINDOW;
+                cp.ExStyle &= ~WS_EX_APPWINDOW;
+                return cp;
+            }
+        }
 
         public frmKeyManager()
         {
             InitializeComponent();
 
-            // Hides the main form window on startup.
-            this.WindowState = FormWindowState.Minimized;
             this.ShowInTaskbar = false;
+            this.FormBorderStyle = FormBorderStyle.FixedToolWindow;
+            this.StartPosition = FormStartPosition.Manual;
+            this.Location = new Point(-2000, -2000);
+            this.WindowState = FormWindowState.Normal;
             this.Visible = false;
 
             // Sets up the NotifyIcon to display in the System Tray.
             SetupNotifyIcon();
 
-            // Registers the Alt + X hotkey.
-
-            RegisterHotKey(this.Handle, HOTKEY_ID, MOD_ALT, (int)Keys.X);
+            _settings = AiOcrSettings.Load();
+            RegisterHotkeyFromSettings();
+            UpdateTrayTooltip();
 
             // Finds the path to the KeyManager.exe file.
             string exePath = Application.ExecutablePath;
@@ -59,8 +74,10 @@ namespace KeyManager
 
             // Creates the right-click context menu for the icon.
             var contextMenu = new ContextMenu();
+            var settingsMenuItem = new MenuItem("Settings");
             var exitMenuItem = new MenuItem("Exit");
             var helpMenuItem = new MenuItem("Help");
+            settingsMenuItem.Click += (sender, e) => OpenSettings();
             exitMenuItem.Click += (sender, e) => this.Close();
             helpMenuItem.Click += (sender, e) => 
             {
@@ -72,8 +89,38 @@ namespace KeyManager
                 }
             };
             contextMenu.MenuItems.Add(helpMenuItem);
+            contextMenu.MenuItems.Add(settingsMenuItem);
             contextMenu.MenuItems.Add(exitMenuItem);
             notifyIcon.ContextMenu = contextMenu;
+        }
+
+        private void RegisterHotkeyFromSettings()
+        {
+            UnregisterHotKey(this.Handle, HOTKEY_ID);
+            if (!RegisterHotKey(this.Handle, HOTKEY_ID, _settings.HotkeyModifiers, _settings.HotkeyKey))
+            {
+                notifyIcon.ShowBalloonTip(5000, "Hotkey Error",
+                    "Could not register shortcut. It may already be in use by another application.",
+                    ToolTipIcon.Warning);
+            }
+        }
+
+        private void UpdateTrayTooltip()
+        {
+            notifyIcon.Text = "Press " + AiOcrSettings.FormatHotkey(_settings) + " to capture screen";
+        }
+
+        private void OpenSettings()
+        {
+            using (var form = new frmSettings(_settings))
+            {
+                if (form.ShowDialog() == DialogResult.OK && form.SavedSettings != null)
+                {
+                    _settings = form.SavedSettings;
+                    RegisterHotkeyFromSettings();
+                    UpdateTrayTooltip();
+                }
+            }
         }
 
         protected override void WndProc(ref Message m)
